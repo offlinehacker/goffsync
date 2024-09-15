@@ -11,7 +11,7 @@ type Quota struct{ User, Total int64 }
 func (q *Quota) Unmarshal(v []byte) error {
 	var result [2]int64
 
-	err := json.Unmarshal(v, result)
+	err := json.Unmarshal(v, &result)
 	if err != nil {
 		return err
 	}

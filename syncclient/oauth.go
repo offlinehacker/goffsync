@@ -28,6 +28,17 @@ type oauthTokenResponseSchema struct {
 	RefreshToken string               `json:"refresh_token"`
 }
 
+type scopedKeyDataRequestSchema struct {
+	ClientID string `json:"client_id"`
+	Scope    string `json:"scope"`
+}
+
+type scopedKeyDataResponseSchema map[string]struct {
+	Identifier           string `json:"identifier"`
+	KeyRotationSecret    string `json:"keyRotationSecret"`
+	KeyRotationTimestamp int64  `json:"keyRotationTimestamp"`
+}
+
 const (
 	oAuthClientID = "e7ce535d93522896"
 	oAuthScope    = "https://identity.mozilla.com/apps/oldsync"

@@ -10,8 +10,6 @@ import (
 	"net/http"
 )
 
-const FFSCLIENT_VERSION = "1.8.0"
-
 type loginRequestSchema struct {
 	Email  string `json:"email"`
 	AuthPW string `json:"authPW"`

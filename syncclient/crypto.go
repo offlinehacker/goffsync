@@ -100,7 +100,7 @@ func deriveKey(secret []byte, namespace string, size int) ([]byte, error) {
 		return nil, fmt.Errorf("hkdf failed")
 	}
 	if n < size {
-		return nil, fmt.Errorf("Not enough data in hkdf")
+		return nil, fmt.Errorf("not enough data in hkdf")
 	}
 	return p, nil
 }

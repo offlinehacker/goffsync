@@ -60,19 +60,3 @@ type recordsRequestSchema struct {
 	Payload   *string `json:"payload,omitempty"`
 	TTL       *int64  `json:"ttl,omitempty"`
 }
-
-type sessionStatusResponseSchema struct {
-	State  string `json:"state"`
-	UserID string `json:"uid"`
-}
-
-type scopedKeyDataRequestSchema struct {
-	ClientID string `json:"client_id"`
-	Scope    string `json:"scope"`
-}
-
-type scopedKeyDataResponseSchema map[string]struct {
-	Identifier           string `json:"identifier"`
-	KeyRotationSecret    string `json:"keyRotationSecret"`
-	KeyRotationTimestamp int64  `json:"keyRotationTimestamp"`
-}

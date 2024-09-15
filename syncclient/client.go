@@ -70,29 +70,6 @@ func (f Client) DeleteAllData(ctx context.Context, session FFSyncSession) error 
 	return nil
 }
 
-func (f Client) CheckSession(ctx context.Context, session FFSyncSession) (bool, error) {
-	binResp, _, err := f.requestWithHawkToken(ctx, "GET", "/session/status", nil, session.SessionToken, "sessionToken")
-	if err != nil {
-		return false, fmt.Errorf("API request failed: %w", err)
-	}
-
-	var resp sessionStatusResponseSchema
-	err = json.Unmarshal(binResp, &resp)
-	if err != nil {
-		return false, fmt.Errorf("failed to unmarshal response: %w", err)
-	}
-
-	if resp.State != "verified" {
-		return false, nil
-	}
-
-	if resp.UserID != session.UserId {
-		return false, nil
-	}
-
-	return true, nil
-}
-
 func (f Client) requestWithHawkToken(ctx context.Context, method string, relurl string, body any, token []byte, tokenType string) ([]byte, []byte, error) {
 	requestURL := f.AuthURL + relurl
 
