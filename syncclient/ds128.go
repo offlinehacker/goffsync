@@ -5,7 +5,7 @@ import (
 	"crypto/rand"
 	"crypto/sha1"
 	"encoding/base64"
-	"github.com/joomcode/errorx"
+	"fmt"
 )
 
 type SigningMethodDS128 struct {
@@ -30,7 +30,7 @@ func (m *SigningMethodDS128) Sign(signingString string, key interface{}) (string
 	case *dsa.PrivateKey:
 		dsaKey = k
 	default:
-		return "", errorx.InternalError.New("ErrInvalidKeyType")
+		return "", fmt.Errorf("invalid key type %T", k)
 	}
 
 	hasher := sha1.New()

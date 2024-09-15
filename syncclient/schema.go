@@ -1,21 +1,5 @@
 package syncclient
 
-type loginRequestSchema struct {
-	Email  string `json:"email"`
-	AuthPW string `json:"authPW"`
-	Reason string `json:"reason"`
-}
-
-type loginResponseSchema struct {
-	UserID             string `json:"uid"`
-	SessionToken       string `json:"sessionToken"`
-	AuthAt             int64  `json:"authAt"`
-	MetricsEnabled     bool   `json:"metricsEnabled"`
-	KeyFetchToken      string `json:"keyFetchToken"`
-	Verified           bool   `json:"verified"`
-	VerificationMethod string `json:"verificationMethod"`
-}
-
 type loginErrorResponseSchema struct {
 	Code    int    `json:"code"`
 	ErrNo   int    `json:"errno"`
@@ -23,25 +7,6 @@ type loginErrorResponseSchema struct {
 	Message string `json:"message"`
 	Info    string `json:"info"`
 	Email   string `json:"email"`
-}
-
-type totpVerifyRequestSchema struct {
-	Code    string `json:"code"`
-	Service string `json:"service"`
-}
-
-type totpVerifyResponseSchema struct {
-	Success bool `json:"success"`
-}
-
-type keysResponseSchema struct {
-	Bundle string `json:"bundle"`
-}
-
-type registerDeviceRequestSchema struct {
-	ID   string `json:"id,omitempty"`
-	Name string `json:"name"`
-	Type string `json:"type"`
 }
 
 type signCertRequestSchemaPKey struct {
@@ -72,27 +37,9 @@ type hawkCredResponseSchema struct {
 	NodeType      string `json:"node_type"`
 }
 
-type collectionsInfoResponseSchema map[string]float64
-
-type collectionsCountResponseSchema map[string]int
-
-type collectionsUsageResponseSchema map[string]float64
-
-type payloadSchema struct {
-	Ciphertext string `json:"ciphertext"`
-	IV         string `json:"IV"`
-	HMAC       string `json:"hmac"`
-}
-
 type deletedPayloadData struct {
 	ID      string `json:"id"`
 	Deleted bool   `json:"deleted"`
-}
-
-type cryptoKeysSchema struct {
-	Default     []string            `json:"default"`
-	Collections map[string][]string `json:"collections"`
-	Collection  string              `json:"collection"`
 }
 
 type listRecordsIDsResponseSchema []string
@@ -117,23 +64,6 @@ type recordsRequestSchema struct {
 type sessionStatusResponseSchema struct {
 	State  string `json:"state"`
 	UserID string `json:"uid"`
-}
-
-type oauthTokenRequestSchema struct {
-	GrantType    string `json:"grant_type"`
-	AccessType   string `json:"access_type,omitempty"`
-	ClientID     string `json:"client_id"`
-	Scope        string `json:"scope"`
-	RefreshToken string `json:"refresh_token,omitempty"`
-}
-
-type oauthTokenResponseSchema struct {
-	AccessToken  string `json:"access_token"`
-	TokenType    string `json:"token_type"`
-	Scope        string `json:"scope"`
-	ExpiresIn    int    `json:"expires_in"`
-	AuthAt       int    `json:"auth_at"`
-	RefreshToken string `json:"refresh_token"`
 }
 
 type scopedKeyDataRequestSchema struct {

@@ -3,7 +3,8 @@ package syncclient
 import (
 	"crypto/sha256"
 	"encoding/base64"
-	"github.com/joomcode/errorx"
+	"fmt"
+
 	"golang.org/x/crypto/hkdf"
 )
 
@@ -18,10 +19,10 @@ func keyBundleFromMasterKey(master []byte, info string) (KeyBundle, error) {
 
 	n, err := r.Read(keyMaterial)
 	if err != nil {
-		return KeyBundle{}, errorx.Decorate(err, "hkdf failed")
+		return KeyBundle{}, fmt.Errorf("hkdf failed")
 	}
 	if n < 2*32 {
-		return KeyBundle{}, errorx.InternalError.New("Not enough data in hkdf")
+		return KeyBundle{}, fmt.Errorf("not enough data in hkdf")
 	}
 
 	return KeyBundle{
@@ -32,17 +33,17 @@ func keyBundleFromMasterKey(master []byte, info string) (KeyBundle, error) {
 
 func keyBundleFromB64Array(arr []string) (KeyBundle, error) {
 	if len(arr) != 2 {
-		return KeyBundle{}, errorx.InternalError.New("keydata must be an array with two values")
+		return KeyBundle{}, fmt.Errorf("keydata must be an array with two values")
 	}
 
 	ec, err := base64.StdEncoding.DecodeString(arr[0])
 	if err != nil {
-		return KeyBundle{}, errorx.Decorate(err, "failed to decode [0]")
+		return KeyBundle{}, fmt.Errorf("failed to decode [0]")
 	}
 
 	hc, err := base64.StdEncoding.DecodeString(arr[1])
 	if err != nil {
-		return KeyBundle{}, errorx.Decorate(err, "failed to decode [1]")
+		return KeyBundle{}, fmt.Errorf("failed to decode [1]")
 	}
 
 	return KeyBundle{

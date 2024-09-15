@@ -1,14 +1,15 @@
 package syncclient
 
 import (
+	"context"
 	"encoding/hex"
 	"encoding/json"
-	"ffsyncclient/cli"
-	"github.com/joomcode/errorx"
-	"gogs.mikescher.com/BlackForestBytes/goext/timeext"
+	"fmt"
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/Mikescher/firefox-sync-client/x"
 )
 
 type LoginSession struct {
@@ -167,7 +168,7 @@ func (e OAuthSession) Extend(cred HawkCredentials, hawkTimeout time.Time) HawkSe
 		AccessToken:       e.AccessToken,
 		RefreshToken:      e.RefreshToken,
 		KeyID:             e.KeyID,
-		Timeout:           timeext.Min(e.CertTime.Add(e.CertDuration), hawkTimeout),
+		Timeout:           x.MinTime(e.CertTime.Add(e.CertDuration), hawkTimeout),
 		HawkID:            cred.HawkID,
 		HawkKey:           cred.HawkKey,
 		APIEndpoint:       cred.APIEndpoint,
@@ -232,7 +233,7 @@ func (s FFSyncSession) Save(path string) error {
 
 	err := os.MkdirAll(dir, 0644)
 	if err != nil {
-		return errorx.Decorate(err, "failed to mkdir directory "+dir)
+		return fmt.Errorf("failed to mkdir directory " + dir)
 	}
 
 	sj := sessionJson{
@@ -258,12 +259,12 @@ func (s FFSyncSession) Save(path string) error {
 
 	dat, err := json.MarshalIndent(sj, "", "  ")
 	if err != nil {
-		return errorx.Decorate(err, "failed to marshal json")
+		return fmt.Errorf("failed to marshal json")
 	}
 
 	err = os.WriteFile(path, dat, 0600)
 	if err != nil {
-		return errorx.Decorate(err, "failed to write file")
+		return fmt.Errorf("failed to write file")
 	}
 
 	return nil
@@ -283,49 +284,48 @@ func (s FFSyncSession) ToKeyed() KeyedSession {
 	}
 }
 
-func LoadSession(ctx *cli.FFSContext, path string) (FFSyncSession, error) {
-
+func LoadSession(ctx context.Context, path string) (FFSyncSession, error) {
 	dat, err := os.ReadFile(path)
 	if err != nil {
-		return FFSyncSession{}, errorx.Decorate(err, "failed to open sessionfile")
+		return FFSyncSession{}, fmt.Errorf("failed to open sessionfile")
 	}
 
 	var sj sessionJson
 	err = json.Unmarshal(dat, &sj)
 	if err != nil {
-		return FFSyncSession{}, errorx.Decorate(err, "failed to unmarshal session file")
+		return FFSyncSession{}, fmt.Errorf("failed to unmarshal session file")
 	}
 
 	sessionToken, err := hex.DecodeString(sj.SessionToken)
 	if err != nil {
-		return FFSyncSession{}, errorx.Decorate(err, "failed to unmarshal session file (SessionToken)")
+		return FFSyncSession{}, fmt.Errorf("failed to unmarshal session file (SessionToken)")
 	}
 
 	keya, err := hex.DecodeString(sj.KeyA)
 	if err != nil {
-		return FFSyncSession{}, errorx.Decorate(err, "failed to unmarshal session file (KeyA)")
+		return FFSyncSession{}, fmt.Errorf("failed to unmarshal session file (KeyA)")
 	}
 
 	keyb, err := hex.DecodeString(sj.KeyB)
 	if err != nil {
-		return FFSyncSession{}, errorx.Decorate(err, "failed to unmarshal session file (KeyB)")
+		return FFSyncSession{}, fmt.Errorf("failed to unmarshal session file (KeyB)")
 	}
 
 	bulkkeys := make(map[string]KeyBundle, len(sj.Hawk.BulkKeys))
 	for k, v := range sj.Hawk.BulkKeys {
 
 		if len(v) != 2 {
-			return FFSyncSession{}, errorx.InternalError.New("failed to decode bulkKeys['" + k + "']: must be an array with two values")
+			return FFSyncSession{}, fmt.Errorf("failed to decode bulkKeys['" + k + "']: must be an array with two values")
 		}
 
 		ec, err := hex.DecodeString(v[0])
 		if err != nil {
-			return FFSyncSession{}, errorx.Decorate(err, "failed to decode bulkKeys['"+k+"'][0]")
+			return FFSyncSession{}, fmt.Errorf("failed to decode bulkKeys['" + k + "'][0]")
 		}
 
 		hc, err := hex.DecodeString(v[1])
 		if err != nil {
-			return FFSyncSession{}, errorx.Decorate(err, "failed to decode bulkKeys['"+k+"'][1]")
+			return FFSyncSession{}, fmt.Errorf("failed to decode bulkKeys['" + k + "'][1]")
 		}
 
 		bulkkeys[k] = KeyBundle{EncryptionKey: ec, HMACKey: hc}
@@ -333,31 +333,31 @@ func LoadSession(ctx *cli.FFSContext, path string) (FFSyncSession, error) {
 
 	accessToken := sj.AccessToken
 	if accessToken == "" {
-		return FFSyncSession{}, errorx.InternalError.New("failed to load session: AccessToken is empty")
+		return FFSyncSession{}, fmt.Errorf("failed to load session: AccessToken is empty")
 	}
 
 	refreshToken := sj.RefreshToken
 	if refreshToken == "" {
-		return FFSyncSession{}, errorx.InternalError.New("failed to load session: RefreshToken is empty")
+		return FFSyncSession{}, fmt.Errorf("failed to load session: RefreshToken is empty")
 	}
 
 	mail := sj.Mail
 
-	ctx.PrintVerboseKV("SessionToken", sessionToken)
-	ctx.PrintVerboseKV("KeyA", keya)
-	ctx.PrintVerboseKV("KeyB", keyb)
-	ctx.PrintVerboseKV("AccessToken", accessToken)
-	ctx.PrintVerboseKV("RefreshToken", refreshToken)
-	ctx.PrintVerboseKV("UserId", sj.UserId)
-	ctx.PrintVerboseKV("HawkAPIEndpoint", sj.Hawk.APIEndpoint)
-	ctx.PrintVerboseKV("HawkID", sj.Hawk.ID)
-	ctx.PrintVerboseKV("HawkKey", sj.Hawk.Key)
-	ctx.PrintVerboseKV("HawkHashAlgorithm", sj.Hawk.HashAlgorithm)
-	ctx.PrintVerboseKV("Timeout", time.UnixMicro(sj.Timeout))
-	for k, v := range bulkkeys {
-		ctx.PrintVerboseKV("BulkKeys['"+k+"'].HMACKey", v.HMACKey)
-		ctx.PrintVerboseKV("BulkKeys['"+k+"'].EncryptionKey", v.EncryptionKey)
-	}
+	// printKV("SessionToken", sessionToken)
+	// printKV("KeyA", keya)
+	// printKV("KeyB", keyb)
+	// printKV("AccessToken", accessToken)
+	// printKV("RefreshToken", refreshToken)
+	// printKV("UserId", sj.UserId)
+	// printKV("HawkAPIEndpoint", sj.Hawk.APIEndpoint)
+	// printKV("HawkID", sj.Hawk.ID)
+	// printKV("HawkKey", sj.Hawk.Key)
+	// printKV("HawkHashAlgorithm", sj.Hawk.HashAlgorithm)
+	// printKV("Timeout", time.UnixMicro(sj.Timeout))
+	// for k, v := range bulkkeys {
+	// 	printKV("BulkKeys['"+k+"'].HMACKey", v.HMACKey)
+	// 	printKV("BulkKeys['"+k+"'].EncryptionKey", v.EncryptionKey)
+	// }
 
 	return FFSyncSession{
 		Mail:              mail,
