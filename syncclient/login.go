@@ -26,15 +26,6 @@ type loginResponseSchema struct {
 	VerificationMethod string `json:"verificationMethod"`
 }
 
-type totpVerifyRequestSchema struct {
-	Code    string `json:"code"`
-	Service string `json:"service"`
-}
-
-type totpVerifyResponseSchema struct {
-	Success bool `json:"success"`
-}
-
 func (f *Client) Login(ctx context.Context, email string, password string) (LoginSession, SessionVerification, error) {
 	resp, stretchpwd, err := f.makeLoginRequest(ctx, email, password, stretchPassword(email, password), false)
 	if err != nil {
@@ -137,7 +128,7 @@ func (f Client) makeLoginRequest(ctx context.Context, email string, password str
 		var errResp loginErrorResponseSchema
 		err = json.Unmarshal(respBodyRaw, &errResp)
 		if err != nil {
-			return loginResponseSchema{}, nil, fmt.Errorf("failed to unmarshal error:\n%w", err)
+			return loginResponseSchema{}, nil, fmt.Errorf("failed to unmarshal error: %w, %d", err, rawResp.StatusCode)
 		}
 
 		// If the email used to stretch the password is different from sync server, the server throws a 400 error
@@ -147,7 +138,7 @@ func (f Client) makeLoginRequest(ctx context.Context, email string, password str
 		}
 
 		if len(string(respBodyRaw)) > 1 {
-			return loginResponseSchema{}, nil, fmt.Errorf("%w: call to /login returned statuscode %v\nBody:\n%v", ErrInternal, rawResp.StatusCode, string(respBodyRaw))
+			return loginResponseSchema{}, nil, fmt.Errorf("%w: call to /login returned statuscode %d Body: %s", ErrInternal, rawResp.StatusCode, string(respBodyRaw))
 		}
 
 		return loginResponseSchema{}, nil, fmt.Errorf("%w: call to /login returned statuscode %v", ErrInternal, rawResp.StatusCode)
@@ -160,6 +151,15 @@ func (f Client) makeLoginRequest(ctx context.Context, email string, password str
 	}
 
 	return resp, stretchpwd, nil
+}
+
+type totpVerifyRequestSchema struct {
+	Code    string `json:"code"`
+	Service string `json:"service"`
+}
+
+type totpVerifyResponseSchema struct {
+	Success bool `json:"success"`
 }
 
 func (f *Client) VerifyWithOTP(ctx context.Context, session LoginSession, otp string) error {

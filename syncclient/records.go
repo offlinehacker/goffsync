@@ -141,7 +141,7 @@ func (record RawRecord[T]) Decrypt(session FFSyncSession) (Record[T], error) {
 	bulkKeys := session.BulkKeys[""]
 
 	if v, ok := session.BulkKeys[string(collection)]; ok {
-		//printMsg("Use collection-specific bulk-keys")
+		debug("Use collection-specific bulk-keys")
 
 		bulkKeys = v
 	} else {

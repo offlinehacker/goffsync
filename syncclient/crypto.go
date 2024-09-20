@@ -26,7 +26,11 @@ const (
 type CryptoKeys struct {
 	Default     []string            `json:"default"`
 	Collections map[string][]string `json:"collections"`
-	Collection  string              `json:"collection"`
+	//Collection  string              `json:"collection"`
+}
+
+func (c *CryptoKeys) Collection() CollectionName {
+	return CollectionCrypto
 }
 
 // KeyBundles method creates map of key bundels from crypto keys

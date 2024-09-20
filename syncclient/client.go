@@ -20,8 +20,8 @@ const FFSCLIENT_VERSION = "1.8.0"
 type Client struct {
 	client func() *http.Client
 
-	ServerURL string
-	AuthURL   string
+	AuthURL        string
+	TokenServerURL string
 
 	MaxRetries        int
 	RequestTimeout    time.Duration
@@ -30,7 +30,9 @@ type Client struct {
 }
 
 func New() *Client {
-	c := &Client{TimeZone: time.Local}
+	c := &Client{TimeZone: time.Local,
+		AuthURL:        "https://api.accounts.firefox.com/v1",
+		TokenServerURL: "https://token.services.mozilla.com"}
 	c.client = sync.OnceValue(c.getClient)
 
 	return c
@@ -108,14 +110,23 @@ func (f *Client) request(ctx context.Context, session FFSyncSession, method stri
 }
 
 func (f *Client) internalRequest(ctx context.Context, auth func(method string, url string, body string, contentType string) (string, error), method string, requestURL string, body any) ([]byte, error) {
-	var buf bytes.Buffer
-	encoder := json.NewEncoder(&buf)
-	err := encoder.Encode(body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal body: %w", err)
+	var buf *bytes.Buffer
+
+	if body != nil {
+		buf = &bytes.Buffer{}
+		encoder := json.NewEncoder(buf)
+		err := encoder.Encode(body)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal body: %w", err)
+		}
 	}
 
-	req, err := http.NewRequestWithContext(ctx, method, requestURL, &buf)
+	var r io.Reader = nil
+	if buf != nil {
+		r = buf
+	}
+
+	req, err := http.NewRequestWithContext(ctx, method, requestURL, r)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
@@ -162,12 +173,12 @@ func (f *Client) internalRequest(ctx context.Context, auth func(method string, u
 		}
 
 		if len(msg) > 1 {
-			return nil, fmt.Errorf("%w: call to %v returned statuscode %v, resp: %s",
-				errCode, requestURL, rawResp.StatusCode, msg)
+			return nil, fmt.Errorf("%w: %s %s returned statuscode %v, resp: %s",
+				errCode, method, requestURL, rawResp.StatusCode, msg)
 		}
 
-		return nil, fmt.Errorf("%w: call to %v returned statuscode %v",
-			errCode, requestURL, rawResp.StatusCode)
+		return nil, fmt.Errorf("%w: %s %s returned statuscode %v",
+			errCode, method, requestURL, rawResp.StatusCode)
 	}
 
 	return respBodyRaw, nil

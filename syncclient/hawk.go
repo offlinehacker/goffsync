@@ -25,7 +25,7 @@ func (f *Client) HawkAuth(ctx context.Context, session OAuthSession) (HawkSessio
 		"AccessToken", session.AccessToken,
 		"KeyID", session.KeyID)
 
-	req, err := http.NewRequestWithContext(ctx, "GET", f.AuthURL+"/1.0/sync/1.5", nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", f.TokenServerURL+"/1.0/sync/1.5", nil)
 	if err != nil {
 		return HawkSession{}, fmt.Errorf("failed to create request: %w", err)
 	}
