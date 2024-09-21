@@ -84,7 +84,7 @@ func (c *Client) GetCryptoKeys(ctx context.Context, session HawkSession) (Crypto
 		return CryptoKeys{}, fmt.Errorf("failed getting crypto keys record: %w", err)
 	}
 
-	record, err := rawRecord.Decrypt(session.ToKeylessSession())
+	record, err := rawRecord.Decrypt(syncKeys)
 	if err != nil {
 		return CryptoKeys{}, fmt.Errorf("failed decrypting crypto keys record: %w", err)
 	}

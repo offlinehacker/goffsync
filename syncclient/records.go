@@ -63,19 +63,7 @@ func (RawRecord[T]) Collection() CollectionName {
 }
 
 // Encode method encrypts payload and returns updated Record
-func (r Record[T]) Encrypt(session FFSyncSession) (RawRecord[T], error) {
-	collection := r.Collection()
-
-	bulkKeys := session.BulkKeys[""]
-
-	if v, ok := session.BulkKeys[string(collection)]; ok {
-		debug("Use collection-specific bulk-keys")
-
-		bulkKeys = v
-	} else {
-		debug("Use global bulk-keys")
-	}
-
+func (r Record[T]) Encrypt(bulkKeys KeyBundle) (RawRecord[T], error) {
 	debug("Encrypting payload",
 		"EncryptionKey", bulkKeys.EncryptionKey,
 		"HMACKey", bulkKeys.HMACKey,
@@ -102,22 +90,24 @@ func (r Record[T]) Encrypt(session FFSyncSession) (RawRecord[T], error) {
 	return r.RawRecord, nil
 }
 
-func (r RawRecord[T]) Update(session FFSyncSession, input T) (RawRecord[T], error) {
-	record, err := r.Decrypt(session)
+func (r RawRecord[T]) Update(bulkKeys KeyBundle, input T) (RawRecord[T], error) {
+	record, err := r.Decrypt(bulkKeys)
 	if err != nil {
 		return r, err
 	}
 
 	record.Data = input
 
-	return record.Encrypt(session)
+	return record.Encrypt(bulkKeys)
 }
 
 func decryptAll[T any](records []RawRecord[T], session FFSyncSession) ([]T, error) {
 	var result []T
 
 	for _, r := range records {
-		decrypted, err := r.Decrypt(session)
+		keys := session.KeyBundle(r.Collection())
+
+		decrypted, err := r.Decrypt(keys)
 		if err != nil {
 			return nil, fmt.Errorf("failed to decrypt %T record: %w", r, err)
 		}
@@ -129,23 +119,11 @@ func decryptAll[T any](records []RawRecord[T], session FFSyncSession) ([]T, erro
 }
 
 // Decode method decrypts and unmarshals Record payload
-func (record RawRecord[T]) Decrypt(session FFSyncSession) (Record[T], error) {
+func (record RawRecord[T]) Decrypt(bulkKeys KeyBundle) (Record[T], error) {
 	result := Record[T]{RawRecord: record}
 
 	if record.Payload == nil {
 		return result, fmt.Errorf("payload empty")
-	}
-
-	collection := any(&result).(collectionGetter).Collection()
-
-	bulkKeys := session.BulkKeys[""]
-
-	if v, ok := session.BulkKeys[string(collection)]; ok {
-		debug("Use collection-specific bulk-keys")
-
-		bulkKeys = v
-	} else {
-		debug("Use global bulk-keys")
 	}
 
 	debug("Decrypting payload",

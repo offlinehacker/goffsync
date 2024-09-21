@@ -113,6 +113,20 @@ type FFSyncSession struct {
 	BulkKeys          map[string]KeyBundle
 }
 
+func (s FFSyncSession) KeyBundle(collection CollectionName) KeyBundle {
+	bulkKeys := s.BulkKeys[""]
+
+	if v, ok := s.BulkKeys[string(collection)]; ok {
+		debug("Use collection-specific bulk-keys")
+
+		bulkKeys = v
+	} else {
+		debug("Use global bulk-keys")
+	}
+
+	return bulkKeys
+}
+
 type sessionHawkJson struct {
 	APIEndpoint   string              `json:"apiEndpoint"`
 	ID            string              `json:"id"`

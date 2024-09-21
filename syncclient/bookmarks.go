@@ -101,7 +101,9 @@ func (c *Client) CreateBookmark(ctx context.Context, session FFSyncSession, inpu
 	bookmark.Data.ParentID = parent.ID
 	bookmark.Data.ParentName = parent.Data.Title
 
-	encBookmark, err := bookmark.Encrypt(session)
+	keys := session.KeyBundle(bookmark.Collection())
+
+	encBookmark, err := bookmark.Encrypt(keys)
 	if err != nil {
 		return "", err
 	}
@@ -113,7 +115,7 @@ func (c *Client) CreateBookmark(ctx context.Context, session FFSyncSession, inpu
 
 	debug("[3] Update parent record")
 
-	encParent, err := parent.Encrypt(session)
+	encParent, err := parent.Encrypt(keys)
 	if err != nil {
 		return "", err
 	}
@@ -133,7 +135,9 @@ func (c *Client) UpdateBookmark(ctx context.Context, session FFSyncSession, inpu
 		return fmt.Errorf("failed to get bookmark: %w", err)
 	}
 
-	decryptedRecord, err := record.Decrypt(session)
+	keys := session.KeyBundle(record.Collection())
+
+	decryptedRecord, err := record.Decrypt(keys)
 	if err != nil {
 		return fmt.Errorf("failed to decrypt bookmark: %w", err)
 	}
@@ -142,7 +146,7 @@ func (c *Client) UpdateBookmark(ctx context.Context, session FFSyncSession, inpu
 	decryptedRecord.Data = input
 
 	// Encrypt and update the bookmark record
-	updatedRecord, err := decryptedRecord.Encrypt(session)
+	updatedRecord, err := decryptedRecord.Encrypt(keys)
 	if err != nil {
 		return fmt.Errorf("failed to encrypt updated bookmark: %w", err)
 	}
@@ -163,7 +167,7 @@ func (c *Client) UpdateBookmark(ctx context.Context, session FFSyncSession, inpu
 		decryptedRecord.Data.ParentName = parent.Data.Title
 
 		// Update the parent record
-		encParent, err := parent.Encrypt(session)
+		encParent, err := parent.Encrypt(keys)
 		if err != nil {
 			return fmt.Errorf("failed to encrypt parent: %w", err)
 		}
@@ -185,8 +189,10 @@ func (c *Client) DeleteBookmark(ctx context.Context, session FFSyncSession, id s
 		return fmt.Errorf("failed to get bookmark: %w", err)
 	}
 
+	keys := session.KeyBundle(record.Collection())
+
 	// Decrypt the record to access the bookmark data
-	decryptedRecord, err := record.Decrypt(session)
+	decryptedRecord, err := record.Decrypt(keys)
 	if err != nil {
 		return fmt.Errorf("failed to decrypt bookmark record: %w", err)
 	}
@@ -195,7 +201,7 @@ func (c *Client) DeleteBookmark(ctx context.Context, session FFSyncSession, id s
 	decryptedRecord.Data.Deleted = true
 
 	// Encrypt and update the record
-	updatedRecord, err := decryptedRecord.Encrypt(session)
+	updatedRecord, err := decryptedRecord.Encrypt(keys)
 	if err != nil {
 		return fmt.Errorf("failed to encrypt updated bookmark record: %w", err)
 	}
@@ -212,7 +218,7 @@ func (c *Client) DeleteBookmark(ctx context.Context, session FFSyncSession, id s
 			return fmt.Errorf("failed to get parent folder: %w", err)
 		}
 
-		decryptedParent, err := parentRecord.Decrypt(session)
+		decryptedParent, err := parentRecord.Decrypt(keys)
 		if err != nil {
 			return fmt.Errorf("failed to decrypt parent folder record: %w", err)
 		}
@@ -226,7 +232,7 @@ func (c *Client) DeleteBookmark(ctx context.Context, session FFSyncSession, id s
 		}
 		decryptedParent.Data.Children = newChildren
 
-		updatedParent, err := decryptedParent.Encrypt(session)
+		updatedParent, err := decryptedParent.Encrypt(keys)
 		if err != nil {
 			return fmt.Errorf("failed to encrypt updated parent folder record: %w", err)
 		}
@@ -255,7 +261,9 @@ func (c *Client) ListBookmarks(ctx context.Context, session FFSyncSession, input
 func (c *Client) CreateFolder(ctx context.Context, session FFSyncSession, folder Folder) (string, error) {
 	record := NewRecord(folder)
 
-	encRecord, err := record.Encrypt(session)
+	keys := session.KeyBundle(record.Collection())
+
+	encRecord, err := record.Encrypt(keys)
 	if err != nil {
 		return "", fmt.Errorf("failed to encrypt folder record: %w", err)
 	}
@@ -278,7 +286,9 @@ func calculateParent[T any](c *Client, ctx context.Context, session FFSyncSessio
 		return Record[Folder]{}, 0, fmt.Errorf("failed to query parent-record: %w", err)
 	}
 
-	record, err := rawRecord.Decrypt(session)
+	keys := session.KeyBundle(rawRecord.Collection())
+
+	record, err := rawRecord.Decrypt(keys)
 	if err != nil {
 		return Record[Folder]{}, 0, fmt.Errorf("failed to decode bookmark-record: %w", err)
 	}
